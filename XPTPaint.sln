@@ -1,0 +1,73 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "XPTPaint", "XPTPaint.vcxproj", "{3287FA64-C8D8-4C31-ACEC-E7D26D4208A3}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Touch_Controller_Demo", "d:\Users\pbecc\OneDrive\Arduino\libraries\TFT_eSPI-master\examples\480 x 320\Touch_Controller_Demo\Touch_Controller_Demo.vcxproj", "{C5F80730-F44F-4478-BDAE-6634EFC2CA88}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sprite_scroll_16bit", "d:\Users\pbecc\OneDrive\Arduino\libraries\TFT_eSPI-master\examples\Sprite\Sprite_scroll_16bit\Sprite_scroll_16bit.vcxproj", "{D16D9846-7518-47CB-907A-076187859B25}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Transparent_Sprite_Demo", "d:\Users\pbecc\OneDrive\Arduino\libraries\TFT_eSPI-master\examples\Sprite\Transparent_Sprite_Demo\Transparent_Sprite_Demo.vcxproj", "{FC463B20-9CD3-44F0-B24A-4BDAED6EA092}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Flash_Bitmap", "d:\Users\pbecc\OneDrive\Arduino\libraries\TFT_eSPI-master\examples\480 x 320\Flash_Bitmap\Flash_Bitmap.vcxproj", "{CFDF4DCE-41A0-49A3-AF3E-3196F89515A7}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TimeNTP_ESP8266WiFi.ino", "D:\Users\pbecc\OneDrive\Arduino\TimeNTP_ESP8266WiFi\TimeNTP_ESP8266WiFi.ino\TimeNTP_ESP8266WiFi.ino.vcxproj", "{16414A68-EC89-4EC1-BBA9-754B13AC2141}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3287FA64-C8D8-4C31-ACEC-E7D26D4208A3}.Debug|x64.ActiveCfg = Debug|x64
+		{3287FA64-C8D8-4C31-ACEC-E7D26D4208A3}.Debug|x64.Build.0 = Debug|x64
+		{3287FA64-C8D8-4C31-ACEC-E7D26D4208A3}.Debug|x86.ActiveCfg = Debug|Win32
+		{3287FA64-C8D8-4C31-ACEC-E7D26D4208A3}.Debug|x86.Build.0 = Debug|Win32
+		{3287FA64-C8D8-4C31-ACEC-E7D26D4208A3}.Release|x64.ActiveCfg = Release|x64
+		{3287FA64-C8D8-4C31-ACEC-E7D26D4208A3}.Release|x64.Build.0 = Release|x64
+		{3287FA64-C8D8-4C31-ACEC-E7D26D4208A3}.Release|x86.ActiveCfg = Release|Win32
+		{3287FA64-C8D8-4C31-ACEC-E7D26D4208A3}.Release|x86.Build.0 = Release|Win32
+		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Debug|x64.ActiveCfg = Debug|Win32
+		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Debug|x86.ActiveCfg = Debug|Win32
+		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Debug|x86.Build.0 = Debug|Win32
+		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Release|x64.ActiveCfg = Release|Win32
+		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Release|x86.ActiveCfg = Release|Win32
+		{C5F80730-F44F-4478-BDAE-6634EFC2CA88}.Release|x86.Build.0 = Release|Win32
+		{D16D9846-7518-47CB-907A-076187859B25}.Debug|x64.ActiveCfg = Debug|Win32
+		{D16D9846-7518-47CB-907A-076187859B25}.Debug|x86.ActiveCfg = Debug|Win32
+		{D16D9846-7518-47CB-907A-076187859B25}.Debug|x86.Build.0 = Debug|Win32
+		{D16D9846-7518-47CB-907A-076187859B25}.Release|x64.ActiveCfg = Release|Win32
+		{D16D9846-7518-47CB-907A-076187859B25}.Release|x86.ActiveCfg = Release|Win32
+		{D16D9846-7518-47CB-907A-076187859B25}.Release|x86.Build.0 = Release|Win32
+		{FC463B20-9CD3-44F0-B24A-4BDAED6EA092}.Debug|x64.ActiveCfg = Debug|Win32
+		{FC463B20-9CD3-44F0-B24A-4BDAED6EA092}.Debug|x86.ActiveCfg = Debug|Win32
+		{FC463B20-9CD3-44F0-B24A-4BDAED6EA092}.Debug|x86.Build.0 = Debug|Win32
+		{FC463B20-9CD3-44F0-B24A-4BDAED6EA092}.Release|x64.ActiveCfg = Release|Win32
+		{FC463B20-9CD3-44F0-B24A-4BDAED6EA092}.Release|x86.ActiveCfg = Release|Win32
+		{FC463B20-9CD3-44F0-B24A-4BDAED6EA092}.Release|x86.Build.0 = Release|Win32
+		{CFDF4DCE-41A0-49A3-AF3E-3196F89515A7}.Debug|x64.ActiveCfg = Debug|Win32
+		{CFDF4DCE-41A0-49A3-AF3E-3196F89515A7}.Debug|x86.ActiveCfg = Debug|Win32
+		{CFDF4DCE-41A0-49A3-AF3E-3196F89515A7}.Debug|x86.Build.0 = Debug|Win32
+		{CFDF4DCE-41A0-49A3-AF3E-3196F89515A7}.Release|x64.ActiveCfg = Release|Win32
+		{CFDF4DCE-41A0-49A3-AF3E-3196F89515A7}.Release|x86.ActiveCfg = Release|Win32
+		{CFDF4DCE-41A0-49A3-AF3E-3196F89515A7}.Release|x86.Build.0 = Release|Win32
+		{16414A68-EC89-4EC1-BBA9-754B13AC2141}.Debug|x64.ActiveCfg = Debug|x64
+		{16414A68-EC89-4EC1-BBA9-754B13AC2141}.Debug|x64.Build.0 = Debug|x64
+		{16414A68-EC89-4EC1-BBA9-754B13AC2141}.Debug|x86.ActiveCfg = Debug|Win32
+		{16414A68-EC89-4EC1-BBA9-754B13AC2141}.Debug|x86.Build.0 = Debug|Win32
+		{16414A68-EC89-4EC1-BBA9-754B13AC2141}.Release|x64.ActiveCfg = Release|x64
+		{16414A68-EC89-4EC1-BBA9-754B13AC2141}.Release|x64.Build.0 = Release|x64
+		{16414A68-EC89-4EC1-BBA9-754B13AC2141}.Release|x86.ActiveCfg = Release|Win32
+		{16414A68-EC89-4EC1-BBA9-754B13AC2141}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3A65B93C-F7D5-482A-9C18-28635B73735E}
+	EndGlobalSection
+EndGlobal
