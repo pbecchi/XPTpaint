@@ -1,0 +1,2 @@
+WiFi Select,Scegli WiFi
+Connecting to :,in collegamento con:

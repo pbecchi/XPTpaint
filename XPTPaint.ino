@@ -113,7 +113,7 @@ void startTouch(bool reCal=false) {
 		pref.end();
 }
 #endif
-
+	tft.fillRect(0, 0, tft.width(), tft.height(), TFT_BLACK);
 
 }
 
@@ -130,7 +130,7 @@ int XX = 100, YY = 100;
 byte curr_m;
 //___________________________functios for factory start up  menus______________________________________
 void do_factory_setup() {            //calibrate touch aND
-startTouch(true);
+//startTouch(true);
 do_defaults(); }
 bool WiFiMode = false;
 void do_defaults() {     //list default configuration:HW,Language,Network;Spiffs;EEprom
@@ -170,11 +170,11 @@ void clear_window() {
 	tft.fillRect(winXmin, winYmin, winXmax - winXmin, winYmax - winYmin, backgroundColor);
 //	tft.setFreeFont(FF1);
 }
-
+char* languages[] = { "         ","           ","              ","        " }; byte ilang = 0;
 #define Serial TWin
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels) {
 	Serial.printf("Listing directory: %s\n", dirname);
-
+	
 	File root = fs.open(dirname);
 	if (!root) {
 		Serial.println("Failed to open directory");
@@ -194,8 +194,10 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels) {
 				listDir(fs, file.name(), levels - 1);
 			}
 		} else {
+		//	Serial.print(strcmp(dirname, "/lang/"));
 			Serial.print("  FILE: ");
-			Serial.print(file.name());
+			Serial.print(file.name());   
+			if (strcmp(dirname, "/lang/")==0) strcpy(languages[ilang++], file.name());
 			Serial.print("  SIZE: ");
 			Serial.println(file.size());
 		}
@@ -219,7 +221,7 @@ void do_startup() {
 }
 void select_wifi(){
 	Gwin.init(0, 0, tft.width(), 450, TFT_BLACK);
-	Gwin.title("WiFi Select", TFT_WHITE, 0);
+	Gwin.title(T("WiFi Select"), TFT_WHITE, 0);
 	byte nmax = WiFi.scanNetworks();
 
 	String WIFIlist[10], psw[10];
@@ -270,8 +272,7 @@ void select_wifi(){
 		}
 		} while (nn== 255);
 		Serial.println(nn); Serial.println(WIFIlist[nn]);
-		TWin.redraw();
-		TWin.print("Connecting to ;");TWin.println( WIFIlist[nn]);
+		TWin.redraw();TWin.print(T("Connecting to :"));TWin.println( WIFIlist[nn]);
 		WiFi.begin(WIFIlist[nn].c_str(), psw[nn].c_str());
 
 		byte icount = 0;
@@ -286,6 +287,50 @@ void select_wifi(){
 
 		TWin.print("IP number assigned by DHCP is ");
 		TWin.println(WiFi.localIP());
+}
+void language_setup() {
+
+	listDir(SPIFFS, "/lang/", 1);
+	if (ilang == 0){tft.drawString("No language found!",50,430);return;}
+	Gwin.init(0, 0, tft.width(), 450, TFT_BLACK);
+	Gwin.title("Languages", TFT_WHITE, 0);
+	Glx_List list = Gwin.list(ilang);
+	list.begin(0, 50, 450);
+
+	list.makelist(languages, NULL, NULL, NULL, ilang, 1, ilang<10 ? false : true);
+	Serial.printf("Bord COLOR=%d ", list.BorCol);
+	list.drawList(ilang, 0);
+	// touch loop do ()while(); not return; check menu check scrolllist;
+	uint16_t x, y; int ind = 0; int nn = 255;
+	do {
+#ifdef ESP8266
+		if (touch.isTouching()) {
+			touch.getPosition(x, y);
+#else
+		if (tft.getTouch(&x, &y)) {
+			x = tft.width() - x;
+			y = tft.height() - y;
+#endif
+			//		ind = MWin.getPressed(x, y);
+			//		WiFilist.scrollList(x, y);
+			// on menu edit  30??
+			nn = list.selectList(x, y);
+			if (nn != 255) {
+				list.drawItem(list.x0, list.yy[nn], ilang, true);
+				while (touchIsTouching()) {};
+				break;
+			}
+		}
+		} while (nn == 255);
+		pref.begin("laguages");
+		Serial.println(nn); Serial.println(languages[nn]);
+		File file=SPIFFS.open(languages[nn]);
+		char lang[16]; String trans;
+		while (file.available()) {
+			file.readBytesUntil(',', lang, 16);
+			trans=file.readStringUntil('\r');
+			pref.putString(lang, trans);
+		}
 }
 //_____________________________________________________________________________________________
 void setup() {
@@ -326,7 +371,7 @@ void setup() {
 #define FILL_F(i,s,y,z) strcpy(MWin.menu[i].menuName[MWin.menu[i].nbutton],s);MWin.menu[i].menuIndex[MWin.menu[i].nbutton]=y;MWin.menu[i].handlerF[MWin.menu[i].nbutton++]=z;  
   FILL_F(0, "Setup", 5, do_factory_setup)
 	  FILL_F(4, "HWconf", 0, do_defaults)
-	  FILL_F(4, "Language", 0, do_language_list)
+	  FILL_F(4, "Language", 0, language_setup)
 	  FILL_F(4, "Network", 6, do_network)
 	  FILL_F(5, "Ethernet", 0, do_ethernet)
 	  FILL_F(5, "WiFi", 7, do_wifi_list)
@@ -338,9 +383,9 @@ void setup() {
 	  //FILL_F(4,  "clear EEPROM", 0, do_clear_EEprom)
 	  FILL_F(4, "return", 1, NULL)
 	  FILL_F(0, "keyb.", 2, do_keyboard)
-  FILL_F(0, "run", 3, NULL)
+  FILL_F(0, "run", 3, do_sta_list)
 	  //		  FILL_F(2,  "keypad", 0, do_keypad)
-	  FILL_F(2, "run_list", 0, do_sta_list)
+	  FILL_F(2, "run", 0,NULL)
 	  FILL_F(2, "stop all ", 0, NULL)
 	  FILL_F(2, "<", 0, time_dec)
 	  FILL_F(2, ">", 0, time_inc)
@@ -406,7 +451,26 @@ void setup() {
 
 
 }
+//#define INTER
+#ifdef INTER
+void setupInterrupt(byte IPIN) {
+	pinMode(IPIN, INPUT_PULLUP);
 
+	//  digitalWrite(pin,HIGH);
+	attachInterrupt(digitalPinToInterrupt(IPIN), touch_int, FALLING);
+}
+volatile uint16_t xx = 0, yy = 0;
+volatile bool pressed=false;
+void IRAM_ATTR touch_int(){
+	uint16_t x = 0, y = 0;
+	//Serial.print("i");
+	if (pressed)return;
+	if (!tft.getTouch(&x, &y)) return;
+	xx = tft.width() - x;
+	yy = tft.height() - y;
+	pressed = true;
+}
+#endif
 void do_graph(){
 	
 		Gwin.init( 0, GRAPH_P, tft.width(), GRAPH_P + GRAPH_H, ILI9341_WHITE);
@@ -469,12 +533,16 @@ void do_keypad() {
 
 }
 //Glx_GWindowsClass::Glx_List list(); 
-void time_inc() { int inc = (list.vmax - list.vmin)/2; list.vmin+=inc; list.vmax+=inc; list.drawList(8,4); }
-void time_dec() { int inc = (list.vmax - list.vmin)/2; list.vmin-=inc; list.vmax-=inc; list.drawList(8,4); }
+void time_inc() { int inc = (list.vmax - list.vmin)/2; list.vmin+=inc; list.vmax+=inc; list.drawList(8,list._first); }
+void time_dec() { int inc = (list.vmax - list.vmin)/2; list.vmin-=inc; list.vmax-=inc; list.drawList(8,list._first); }
+
 void do_sta_list() {
-	Gwin.init( 0, 0, tft.width(), 450, TFT_BLACK);
+
+	Gwin.init(0, 0, tft.width(), 450, TFT_BLACK);
 	Gwin.title("Stations", TFT_WHITE, 0);
-	
+#ifdef INTER
+	setupInterrupt(13);
+#endif
 	list.begin(0, 50, 450);
 	String str[16] = {
 		"valve n.1",
@@ -493,13 +561,30 @@ void do_sta_list() {
 		"valve n.14",
 		"valve n.15",
 		"valve n.16"
-		 };
+	};
 	int value0[16] = { 60,120,180,240,260,360,390,480,500,580,620,640,700,800,830,900 },
 		value[16] = { 80,150,190,280,270,380,420,500,560,590,630,680,790,810,850,920 };
 
-	list.makelist(str, value0, value, NULL, 16, 0,true);   //type=0 progress bar // type=1 1 par 2 par 3 par
-	list.drawList( 8,4);
-	list.editList(2);
+	list.makelist(str, value0, value, NULL, 16, 0, true);   //type=0 progress bar // type=1 1 par 2 par 3 par
+	list.drawList(8, 4);
+	// ___________________this loop to simulate run loop_______________________________________
+	uint16_t x, y; int ind=0;
+	do {
+#ifndef INTER
+		if (tft.getTouch(&x, &y)) {
+			x = tft.width() - x;
+			y = tft.height() - y;
+#else
+		if(pressed){
+			pressed = false;
+			x = xx; y = yy;
+#endif
+			ind = MWin.getPressed(x, y);
+			list.scrollList(x, y);
+			if (ind % 10 == 1) 	list.editList(2);
+		}
+	} while (ind % 10 != 5);
+	MWin.menu[0].draw();
 }
 #define N_OPTIONS 45
 int option[50] = { 1,2,3,4,5,6,7,8,9,10,11,12,13 };
