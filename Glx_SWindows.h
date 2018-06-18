@@ -19,7 +19,12 @@
 #include <Adafruit_ILI9341esp.h>
 #include <XPT2046.h>
 #else
+//#ifndef RPI
+//#include <TFT_eSPI_9488.h>
+//#else
 #include <TFT_eSPI.h>
+//#endif
+
 #define ILI9341_BLACK TFT_BLACK
 #define ILI9341_BLUE TFT_BLUE
 #define ILI9341_WHITE TFT_WHITE

@@ -7,7 +7,12 @@
 #else
 //#define FS_NO_GLOBALS
 #include <FS.h>
+////////////////define RPI on compiler flags
+//#ifndef RPI
+//#include <TFT_eSPI_9488.h>
+//#else
 #include <TFT_eSPI.h>
+//#endif
 #include <WiFi.h>
 
 #endif
@@ -52,6 +57,172 @@ Glx_GWindowsClass Gwin;
 Glx_GWindowsClass::Graf myGraph[N_curves];
 #define CALIBRATION_FILE "touch.dat"
 Preferences pref;
+#include <Update.h>
+
+
+// Variables to validate
+// response from S3
+int contentLength = 0;
+bool isValidContentType = false;
+
+// Your SSID and PSWD that the chip needs
+// to connect to
+
+// S3 Bucket Config
+
+
+										   // Utility to extract header value from headers
+String getHeaderValue(String header, String headerName) {
+	return header.substring(strlen(headerName.c_str()));
+}
+#define Serial TWin
+// OTA Logic 
+void execOTA(String host,String bin ,byte port) {
+	WiFiClient client;
+	Serial.println("Connecting to: " + String(host));
+	// Connect to S3
+	if (client.connect(host.c_str(), port)) {
+		// Connection Succeed.
+		// Fecthing the bin
+		Serial.println("Fetching Bin: " + String(bin));
+
+		// Get the contents of the bin file
+		client.print(String("GET ") + bin + " HTTP/1.1\r\n" +
+			"Host: " + host + "\r\n" +
+			"Cache-Control: no-cache\r\n" +
+			"Connection: close\r\n\r\n");
+
+		// Check what is being sent
+		//    Serial.print(String("GET ") + bin + " HTTP/1.1\r\n" +
+		//                 "Host: " + host + "\r\n" +
+		//                 "Cache-Control: no-cache\r\n" +
+		//                 "Connection: close\r\n\r\n");
+
+		unsigned long timeout = millis();
+		while (client.available() == 0) {
+			if (millis() - timeout > 5000) {
+				Serial.println("Client Timeout !");
+				client.stop();
+				return;
+			}
+		}
+		// Once the response is available,
+		// check stuff
+
+		/*
+		Response Structure
+		HTTP/1.1 200 OK
+		x-amz-id-2: NVKxnU1aIQMmpGKhSwpCBh8y2JPbak18QLIfE+OiUDOos+7UftZKjtCFqrwsGOZRN5Zee0jpTd0=
+		x-amz-request-id: 2D56B47560B764EC
+		Date: Wed, 14 Jun 2017 03:33:59 GMT
+		Last-Modified: Fri, 02 Jun 2017 14:50:11 GMT
+		ETag: "d2afebbaaebc38cd669ce36727152af9"
+		Accept-Ranges: bytes
+		Content-Type: application/octet-stream
+		Content-Length: 357280
+		Server: AmazonS3
+
+		{{BIN FILE CONTENTS}}
+
+		*/
+		while (client.available()) {
+			// read line till /n
+			String line = client.readStringUntil('\n');
+			Serial.println(line);
+			// remove space, to check if the line is end of headers
+			line.trim();
+
+			// if the the line is empty,
+			// this is end of headers
+			// break the while and feed the
+			// remaining `client` to the
+			// Update.writeStream();
+			if (!line.length()) {
+				//headers ended
+				break; // and get the OTA started
+			}
+
+			// Check if the HTTP Response is 200
+			// else break and Exit Update
+			if (line.startsWith("HTTP/1.1")) {
+				if (line.indexOf("200") < 0) {
+					Serial.println("Got a non 200 status code from server. Exiting OTA Update.");
+					break;
+				}
+			}
+
+			// extract headers here
+			// Start with content length
+			if (line.startsWith("Content-Length: ")) {
+				contentLength = atoi((getHeaderValue(line, "Content-Length: ")).c_str());
+				Serial.println("Got " + String(contentLength) + " bytes from server");
+			}
+
+			// Next, the content type
+			if (line.startsWith("Content-Type: ")) {
+				String contentType = getHeaderValue(line, "Content-Type: ");
+				Serial.println("Got " + contentType + " payload.");
+				if (contentType == "application/octet-stream") {
+					isValidContentType = true;
+				}
+			}
+		}
+	} else {
+		// Connect to S3 failed
+		// May be try?
+		// Probably a choppy network?
+		Serial.println("Connection to " + String(host) + " failed. Please check your setup");
+		// retry??
+		// execOTA();
+	}
+
+	// Check what is the contentLength and if content type is `application/octet-stream`
+	Serial.println("contentLength : " + String(contentLength) + ", isValidContentType : " + String(isValidContentType));
+
+	// check contentLength and content type
+	if (contentLength && isValidContentType) {
+		// Check if there is enough to OTA Update
+		bool canBegin = Update.begin(contentLength);
+
+		// If yes, begin
+		if (canBegin) {
+			Serial.println("Begin OTA. This may take 2 - 5 mins to complete. Things might be quite for a while.. Patience!");
+			// No activity would appear on the Serial monitor
+			// So be patient. This may take 2 - 5mins to complete
+			size_t written = Update.writeStream(client);
+
+			if (written == contentLength) {
+				Serial.println("Written : " + String(written) + " successfully");
+			} else {
+				Serial.println("Written only : " + String(written) + "/" + String(contentLength) + ". Retry?");
+				// retry??
+				// execOTA();
+			}
+
+			if (Update.end()) {
+				Serial.println("OTA done!");
+				if (Update.isFinished()) {
+					Serial.println("Update successfully completed. Rebooting.");
+					ESP.restart();
+				} else {
+					Serial.println("Update not finished? Something went wrong!");
+				}
+			} else {
+				Serial.println("Error Occurred. Error #: " + String(Update.getError()));
+			}
+		} else {
+			// not enough space to begin OTA
+			// Understand the partitions and
+			// space availability
+			Serial.println("Not enough space to begin OTA");
+			client.flush();
+		}
+	} else {
+		Serial.println("There was no content in the response");
+		client.flush();
+	}
+}
+#define Serial Serial
 void startTouch(bool reCal=false) {
 
 	bool calDataOK=false;
@@ -99,11 +270,12 @@ void startTouch(bool reCal=false) {
 
 #else
 	pref.begin("LCDcal", false);
-	if(pref.getBool("dataPresent")&&reCal==false)
+	if((pref.getBool("dataPresent")&&reCal==false))
 	{
 		pref.getBytes("data",(void *) calibrationData,sizeof(calibrationData));
 		pref.end();
 		tft.setTouch(calibrationData);
+		Serial.println("Calibration reset");
 
 	}
 	else{
@@ -128,10 +300,19 @@ void startTouch(bool reCal=false) {
 #define KEYP_Y 280
 int XX = 100, YY = 100;
 byte curr_m;
-//___________________________functios for factory start up  menus______________________________________
+//___________________________functios tfor factory start up  menus______________________________________
 void do_factory_setup() {            //calibrate touch aND
-//startTouch(true);
-do_defaults(); }
+	byte count = 0;
+	pinMode(0, INPUT_PULLUP);
+	tft.setCursor(50, 50);
+	tft.setTextColor(TFT_WHITE, TFT_BLACK);
+	tft.println("press BOOT to calibrate Touch");
+	//delay(10000);
+	while (digitalRead(0) == 1 && count++ < 100)delay(100);
+	if (count<99)startTouch(true);
+	else startTouch();
+	;
+	do_defaults(); }
 bool WiFiMode = false;
 void do_defaults() {     //list default configuration:HW,Language,Network;Spiffs;EEprom
 
@@ -154,7 +335,45 @@ void do_network() {
 		tft.printf("%16s    selected", "WiFi");
 
 }
-void do_language_list() {};           //list available languages for selection
+
+void do_update_firmware() {
+	String host = "www.tiaocorp.com"; // Host => bucket-name.s3.region.amazonaws.com
+	int port = 80; // Non https. For HTTPS 443. As of today, HTTPS doesn't work.
+	String bin = "/esp32/firmware/XPTPaint.bin"; // bin file name with a slash in front.
+	TWin.init(0, 300, tft.width(), 450, TEXT_S, 0); //located at the bottom!!!!
+	Glx_keyborad keyb;
+	byte nmax = WiFi.scanNetworks();
+
+	String WIFIlist[10], psw[10];
+	pref.begin("wifi", false);
+	for (byte i = 0; i < nmax; i++) {
+		WIFIlist[i] = WiFi.SSID(i);
+		psw[i] = pref.getString(WIFIlist[i].c_str());
+		if (psw[i] != "") {
+			WiFi.begin(WIFIlist[i].c_str(), psw[i].c_str());
+			byte count = 0;
+			while (WiFi.status() != WL_CONNECTED&&count<200) {
+				delay(500); count++;
+			}
+			if (count < 200) {
+				TWin.printf("Connected to: %s\r\n", WIFIlist[i].c_str()); break;
+			}
+		}
+		Serial.println(WIFIlist[i]);
+		Serial.println(psw[i]);
+		}
+	pref.end();
+	
+	
+	//keyb._ypos = 250;
+	//keyb.init(0);
+	//tft.print("Enter firmware Name : /web/******.bin");
+	//if (keyb.getChar())bin = keyb.retChar;
+	//keyb.end();
+
+	execOTA(host,bin,port);
+}
+	void do_language_list() {};           //list available languages for selection
 void do_ethernet() {                //list ethernet configuration: wifi access point
 	WiFiMode = false;
 	do_network();
@@ -167,11 +386,14 @@ void scroll_down() { TWin.redraw(--pos); }
 
 void clear_window() {
 	Gwin.init(0, 0, tft.width(), 450, ILI9341_BLACK);
-	tft.fillRect(winXmin, winYmin, winXmax - winXmin, winYmax - winYmin, backgroundColor);
+	tft.fillRect(winXmin, winYmin, winXmax - winXmin, 450, backgroundColor);
 //	tft.setFreeFont(FF1);
 }
-char* languages[] = { "         ","           ","              ","        " }; byte ilang = 0;
-#define Serial TWin
+
+char languages[4][12];
+
+byte ilang = 0;
+//#define Serial TWin
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels) {
 	Serial.printf("Listing directory: %s\n", dirname);
 	
@@ -194,10 +416,21 @@ void listDir(fs::FS &fs, const char * dirname, uint8_t levels) {
 				listDir(fs, file.name(), levels - 1);
 			}
 		} else {
-		//	Serial.print(strcmp(dirname, "/lang/"));
+		//	Serial.print(strcmp(dirname, "/lang"));
 			Serial.print("  FILE: ");
 			Serial.print(file.name());   
-			if (strcmp(dirname, "/lang/")==0) strcpy(languages[ilang++], file.name());
+			if (strcmp(dirname, "/lang") == 0) {
+				Serial.println(file.name());
+				char ca[25]; char * cc = ca;
+				strcpy(ca, file.name());
+				Serial.println(cc);
+				cc = strtok(ca, "/");
+				Serial.println(cc);
+				cc = strtok(NULL, ".");
+				Serial.println(cc);
+				//languages[ilang] =(char *) malloc(12 * sizeof(char));
+				strcpy(languages[ilang++], cc);
+			}
 			Serial.print("  SIZE: ");
 			Serial.println(file.size());
 		}
@@ -223,7 +456,7 @@ void select_wifi(){
 	Gwin.init(0, 0, tft.width(), 450, TFT_BLACK);
 	Gwin.title(T("WiFi Select"), TFT_WHITE, 0);
 	byte nmax = WiFi.scanNetworks();
-
+	
 	String WIFIlist[10], psw[10];
 	pref.begin("wifi",false);
 	for (byte i = 0; i < nmax; i++) {
@@ -233,6 +466,8 @@ void select_wifi(){
 		Serial.println(psw[i]);
 		Serial.println(psw[i].length());
 	}
+	pref.end();
+	pref.begin("languages",false);
 	Glx_List WiFilist = Gwin.list(12);
 
 	WiFilist.begin(0, 50, 450);
@@ -287,17 +522,24 @@ void select_wifi(){
 
 		TWin.print("IP number assigned by DHCP is ");
 		TWin.println(WiFi.localIP());
+		pref.end();
 }
 void language_setup() {
 
-	listDir(SPIFFS, "/lang/", 1);
+	listDir(SPIFFS, "/lang", 0);
 	if (ilang == 0){tft.drawString("No language found!",50,430);return;}
+	Serial.println("Start window");
+
 	Gwin.init(0, 0, tft.width(), 450, TFT_BLACK);
 	Gwin.title("Languages", TFT_WHITE, 0);
-	Glx_List list = Gwin.list(ilang);
+	Serial.println("Start list");
+	Glx_List list = Gwin.list(5);
 	list.begin(0, 50, 450);
+	String lingue[4];
+	for (byte j = 0; j < ilang;j++)lingue[j] = languages[j];
+	Serial.println("make list list");
 
-	list.makelist(languages, NULL, NULL, NULL, ilang, 1, ilang<10 ? false : true);
+	list.makelist(lingue, NULL, NULL, NULL, ilang, 1, ilang<10 ? false : true);
 	Serial.printf("Bord COLOR=%d ", list.BorCol);
 	list.drawList(ilang, 0);
 	// touch loop do ()while(); not return; check menu check scrolllist;
@@ -324,25 +566,44 @@ void language_setup() {
 		} while (nn == 255);
 		pref.begin("laguages");
 		Serial.println(nn); Serial.println(languages[nn]);
-		File file=SPIFFS.open(languages[nn]);
-		char lang[16]; String trans;
+		pref.putString("current_lang", languages[nn]);
+		char filename[16] = "/lang/";
+		strcat(filename, languages[nn]);
+		strcat(filename, ".txt");
+		Serial.println(filename);
+		File file = SPIFFS.open(filename);
+		char lang[26]; String trans;
 		while (file.available()) {
-			file.readBytesUntil(',', lang, 16);
+			byte n=file.readBytesUntil(',', lang, 26);
+			lang[n] = 0; if (n > 16)lang[16] = 0;
+			Serial.println(lang); Serial.println(strlen(lang));
 			trans=file.readStringUntil('\r');
+			Serial.println(trans);
 			pref.putString(lang, trans);
 		}
+		pref.end();
 }
 //_____________________________________________________________________________________________
 void setup() {
-  delay(1000);
+
   
   Serial.begin(115200);
  // SPI.setFrequency(ESP_SPI_FREQ);
-
+ // pref.clear();
   tft.begin();
+  tft.setRotation(2);
+  tft.setCursor(20, 10);
+  tft.setTextColor(TFT_BLACK, TFT_WHITE);  tft.setTextSize(2);
 #ifdef ESP32
+  byte count = 0;
+  pinMode(0, INPUT);
+  tft.println("start....");
+  tft.println("press BOOT to calibrate Touch");
+  //delay(10000);
+  while (digitalRead(0) == 1 && count++ < 100)delay(100);
+  if (count<99)startTouch(true);
+  else startTouch();
   
-  startTouch();
 
 #else
   touch.begin(tft.width(), tft.height());  // Must be done before setting rotation
@@ -371,6 +632,7 @@ void setup() {
 #define FILL_F(i,s,y,z) strcpy(MWin.menu[i].menuName[MWin.menu[i].nbutton],s);MWin.menu[i].menuIndex[MWin.menu[i].nbutton]=y;MWin.menu[i].handlerF[MWin.menu[i].nbutton++]=z;  
   FILL_F(0, "Setup", 5, do_factory_setup)
 	  FILL_F(4, "HWconf", 0, do_defaults)
+	  FILL_F(4, "SwUpdate", 0, do_update_firmware);
 	  FILL_F(4, "Language", 0, language_setup)
 	  FILL_F(4, "Network", 6, do_network)
 	  FILL_F(5, "Ethernet", 0, do_ethernet)
@@ -757,10 +1019,11 @@ void do_wifi_list() {               //list  wifi access point and if password is
 				WiFilist.list[WiFilist.selected].value[WiFilist.list[WiFilist.selected].value.length() - 2] = 0;
 				Serial.println(WiFilist.list[WiFilist.selected].value);
 				pref.putString(WIFIlist[WiFilist.selected].c_str(), WiFilist.list[WiFilist.selected].value);
+			
 			}
 		}
 	} while (ind % 10 != 3);
-	
+	pref.end();
 		/*	// on menu edit  30??
 			if (ind == 62) {
 				bool done = false;
